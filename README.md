@@ -196,7 +196,7 @@ stock_prediction/
 │   ├── 01_data_collection.ipynb     ← 전 종목 데이터 수집
 │   ├── 02_market_overview.ipynb     ← 시장 전체 EDA
 │   ├── 03_technical_analysis.ipynb  ← 기술적 지표 + 스크리닝
-│   ├── 04_lstm_prediction.ipynb     ← 9개 모델 학습·비교·2025 검증
+│   ├── 04_ml_regression_models.ipynb ← 9개 모델 학습·비교·2025 검증
 │   └── 05_backtesting.ipynb         ← 전략 백테스팅
 ├── src/
 │   ├── data_collector.py            ← 수집·캐싱 모듈
