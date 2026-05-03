@@ -8,41 +8,19 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-import copy
-from lxml import etree
 
-NSMAP = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+NS_RELS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+NS_PML  = 'http://schemas.openxmlformats.org/presentationml/2006/main'
 
 prs = Presentation('01_stock_prediction_report.pptx')
-print('로드 시 슬라이드 수:', len(prs.slides))
+n_original = len(prs.slides)
+print('로드 시 슬라이드 수:', n_original)
 
-# ──────────────────────────────────────
-# STEP 1: 슬라이드 17~22 제대로 삭제
-#  → sldIdLst에서 제거 + 관계(rel)도 제거
-# ──────────────────────────────────────
-def delete_slide(prs, idx):
-    sldIdLst = prs.slides._sldIdLst
-    sld_id_elems = sldIdLst.findall(
-        '{http://schemas.openxmlformats.org/presentationml/2006/main}sldId')
-    target = sld_id_elems[idx]
-    rId = target.get(f'{{{NSMAP}}}id')
-    sldIdLst.remove(target)
-    # _rels 내부 딕셔너리에서 직접 제거
-    if rId in prs.part._rels._rels:
-        del prs.part._rels._rels[rId]
-
-# 뒤에서부터 삭제 (인덱스 밀림 방지)
-for i in reversed(range(16, 22)):
-    delete_slide(prs, i)
-
-print('삭제 후 슬라이드 수:', len(prs.slides))  # 16이어야 함
+sldIdLst = prs.slides._sldIdLst
 
 # ──────────────────────────────────────
 # 공통 헬퍼 함수
 # ──────────────────────────────────────
-W = prs.slide_width
-H = prs.slide_height
-
 def rgb(r, g, b):
     return RGBColor(r, g, b)
 
@@ -154,21 +132,21 @@ def make_slide(prs, title, sub, tagline,
     add_rect(slide, 0.18, 4.78, 4.65, 1.82, rgb(16, 38, 28))
     add_tb(slide, 0.32, 4.85, 2.0, 0.36,
            '✅  장점', size=11, bold=True, color=COLOR_GREEN)
-    y2 = 5.24
+    y = 5.24
     for p_text in pros:
-        add_tb(slide, 0.32, y2, 4.4, 0.38,
+        add_tb(slide, 0.32, y, 4.4, 0.38,
                f'• {p_text}', size=10, color=COLOR_WHITE)
-        y2 += 0.4
+        y += 0.4
 
     # 단점
     add_rect(slide, 5.17, 4.78, 4.65, 1.82, rgb(38, 16, 16))
     add_tb(slide, 5.32, 4.85, 2.0, 0.36,
            '⚠  단점', size=11, bold=True, color=COLOR_RED)
-    y3 = 5.24
+    y = 5.24
     for c_text in cons:
-        add_tb(slide, 5.32, y3, 4.4, 0.38,
+        add_tb(slide, 5.32, y, 4.4, 0.38,
                f'• {c_text}', size=10, color=COLOR_WHITE)
-        y3 += 0.4
+        y += 0.4
 
     # 하단 바
     add_rect(slide, 0, 6.78, 10, 0.22, rgb(22, 33, 55))
@@ -421,19 +399,17 @@ make_slide(
     badge   = '거리 기반',
 )
 
-print('슬라이드 생성 후 총 수:', len(prs.slides))  # 22
+print('슬라이드 생성 후 총 수:', len(prs.slides))
 
 # ──────────────────────────────────────
-# STEP 3: 새 슬라이드(16~21)를 슬라이드 9 뒤로 이동
-# 목표 순서: 0~8 (기존), 16~21 (새 6장), 9~15 (기존 나머지)
+# STEP 3: 새 슬라이드를 슬라이드 9(XGBoost) 뒤로 이동
+# 목표 순서: 기존 0~8, 새 6장, 기존 9~끝
 # ──────────────────────────────────────
-NS_PML = 'http://schemas.openxmlformats.org/presentationml/2006/main'
-sldIdLst = prs.slides._sldIdLst
-all_ids  = sldIdLst.findall(f'{{{NS_PML}}}sldId')
+all_ids = sldIdLst.findall(f'{{{NS_PML}}}sldId')
 
-old_first9  = all_ids[:9]
-new_six     = all_ids[16:22]
-old_rest    = all_ids[9:16]
+old_first9 = all_ids[:9]
+new_six    = all_ids[n_original:]       # 방금 추가된 6장
+old_rest   = all_ids[9:n_original]      # 기존 9번 이후 슬라이드
 
 for elem in all_ids:
     sldIdLst.remove(elem)
